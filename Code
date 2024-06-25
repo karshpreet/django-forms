@@ -1,0 +1,130 @@
+!pip install django
+
+import os
+import sys
+
+# Create directories for the Django project and app
+!mkdir -p /content/myproject/myapp
+
+# Create an empty __init__.py file
+!touch /content/myproject/__init__.py
+!touch /content/myproject/myapp/__init__.py
+
+
+settings_content = """
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+SECRET_KEY = 'your-secret-key'
+DEBUG = True
+ALLOWED_HOSTS = []
+
+INSTALLED_APPS = [
+    'django.contrib.contenttypes',
+    'django.contrib.auth',
+    'myapp',
+]
+
+MIDDLEWARE = []
+
+ROOT_URLCONF = 'myproject.urls'
+
+TEMPLATES = []
+
+WSGI_APPLICATION = 'myproject.wsgi.application'
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    }
+}
+
+USE_TZ = True
+"""
+
+# Write settings.py
+with open('/content/myproject/settings.py', 'w') as f:
+    f.write(settings_content)
+
+
+models_content = """
+from django.db import models
+
+class GeeksModel(models.Model):
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    last_modified = models.DateTimeField(auto_now_add=True)
+    img = models.ImageField(upload_to='images/')
+
+    def __str__(self):
+        return self.title
+"""
+
+# Write models.py
+with open('/content/myproject/myapp/models.py', 'w') as f:
+    f.write(models_content)
+
+
+forms_content = """
+from django import forms
+from .models import GeeksModel
+
+class GeeksForm(forms.ModelForm):
+    class Meta:
+        model = GeeksModel
+        fields = ['title', 'description', 'img']
+"""
+
+# Write forms.py
+with open('/content/myproject/myapp/forms.py', 'w') as f:
+    f.write(forms_content)
+
+
+import django
+from django.conf import settings
+
+# Set the DJANGO_SETTINGS_MODULE environment variable
+os.environ['DJANGO_SETTINGS_MODULE'] = 'myproject.settings'
+sys.path.append('/content/myproject')
+
+# Initialize Django
+django.setup()
+
+# Run migrations
+!python /content/myproject/manage.py migrate
+
+
+from IPython.display import display, HTML
+from django.http import HttpRequest
+from myapp.forms import GeeksForm
+
+# Simulate a POST request with form data
+request_data = {
+    'title': 'Sample Title',
+    'description': 'Sample Description',
+}
+
+request = HttpRequest()
+request.method = 'POST'
+request.POST = request_data
+
+# Create an instance of the form with the POST data
+form = GeeksForm(request.POST)
+
+# Check if the form is valid and save the instance
+if form.is_valid():
+    form.save()
+else:
+    print("Form is not valid")
+
+# Render the form as HTML
+form_html = f'''
+<form method="post">
+    {form.as_p()}
+    <input type="submit" value="Submit">
+</form>
+'''
+
+display(HTML(form_html))
